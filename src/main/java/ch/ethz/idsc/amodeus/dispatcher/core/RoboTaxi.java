@@ -77,6 +77,10 @@ public final class RoboTaxi {
 
     // ===================================================================================
     // methods to be used by dispatchers, public
+    
+    public long getOnBoardPassengers() {
+        return menu.getMenuOnBoardCustomers();
+    }
 
     /** @return {@link} location at which robotaxi can be diverted, i.e. a Link with
      *         an endnode at which the robotaxi path can be altered */
@@ -355,6 +359,11 @@ public final class RoboTaxi {
         if (status.equals(RoboTaxiStatus.REBALANCEDRIVE))
             finishRedirection();
         setMenu(SharedCourseAdd.asDessert(menu, redirectCourse));
+    }
+    
+    /* package */ void pickupOf(List<AVRequest> avrs){
+        for(AVRequest avr : avrs)
+            setMenu(SharedCourseRemove.several(menu, SharedCourse.pickupCourse(avr)));
     }
 
     /* package */ void addRedirectCourseToMenuAtBegining(SharedCourse redirectCourse) {

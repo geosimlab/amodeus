@@ -65,10 +65,12 @@ public class TravelTimeAnalysis implements AnalysisElement, TotalValueAppender {
         time.append(RealScalar.of(simulationObject.now));
         Tensor submission = Tensor.of(simulationObject.requests.stream()//
                 .filter(rc -> RStatusHelper.unserviced(rc.requestStatus))//
+                .filter(rc -> !RStatusHelper.cancelled(rc.requestStatus))//
                 .map(rc -> RealScalar.of(simulationObject.now - rc.submissionTime)));
         waitTimePlotValues.append(Join.of(Quantiles.SET.map(QuantileOrZero.of(submission)), //
                 Tensors.vector(MeanOrZero.of(submission).number().doubleValue())));
         waitingCustomers.append(RationalScalar.of(simulationObject.requests.stream()//
+        		.filter(rc -> !RStatusHelper.cancelled(rc.requestStatus))//
                 .filter(rc -> RStatusHelper.unserviced(rc.requestStatus)).count(), 1));//
 
         /** maximum time */
@@ -83,13 +85,18 @@ public class TravelTimeAnalysis implements AnalysisElement, TotalValueAppender {
 
         /** finish filling of travel Histories */
         for (TravelHistory travelHistory : travelHistories.values()) {
-            travelTimes.appendRow(Tensors.of( //
-                    RealScalar.of(travelHistory.reqIndx), travelHistory.getWaitTime(), //
-                    travelHistory.getDriveTime(), travelHistory.getTotalTravelTime()));
-            requstStmps.appendRow(Tensors.of( //
-                    RealScalar.of(travelHistory.reqIndx), travelHistory.submsnTime, //
-                    travelHistory.getAssignmentTime(), travelHistory.getWaitEndTime(), //
-                    travelHistory.getDropOffTime()));
+            if (!(travelHistory.getAssignmentTime().equals(travelHistory.getDropOffTime()) && //
+            		travelHistory.getDropOffTime().equals(travelHistory.getWaitEndTime()) && //
+            		travelHistory.getDropOffTime().equals(tLast))) {
+	            
+        			travelTimes.appendRow(Tensors.of( //
+            		RealScalar.of(travelHistory.reqIndx), travelHistory.getWaitTime(), //
+            		travelHistory.getDriveTime(), travelHistory.getTotalTravelTime()));
+            		requstStmps.appendRow(Tensors.of( //
+            		RealScalar.of(travelHistory.reqIndx), travelHistory.submsnTime, //
+            		travelHistory.getAssignmentTime(), travelHistory.getWaitEndTime(), //
+            		travelHistory.getDropOffTime()));
+            	}
         }
 
         /** calculate maximum values */

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,8 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
     int total_matchedRequests = 0;
 
     private Map<RoboTaxi, List<Link>> tempLocationTrace = new HashMap<>();
+    
+    protected List<AVRequest> cancelledRequests = new ArrayList<>();
 
     public BasicUniversalDispatcher(EventsManager eventsManager, Config config, //
             OperatorConfig operatorConfig, //
@@ -66,6 +69,10 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
     /** @return {@Collection} of all {@AVRequests} which are currently open.
      *         Requests are removed from list in setAcceptRequest function. */
     protected synchronized final Collection<AVRequest> getAVRequests() {
+    	if (pendingRequests.removeIf(avRequest -> Objects.isNull(avRequest.getPickupTask()) && //
+    			getTimeNow() - avRequest.getSubmissionTime() > 600)) {
+    		System.out.println("removed request");
+    	}
         return Collections.unmodifiableCollection(pendingRequests);
     }
 
@@ -109,14 +116,26 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
         boolean added = pendingRequests.add(request);
         GlobalAssert.that(added);
     }
+    
+    @Override
+    protected void protectedBeforeStepTasks(){
+        pendingRequests.removeIf(avRequest -> {
+            boolean condition = Objects.isNull(avRequest.getPickupTask()) && getTimeNow() - avRequest.getSubmissionTime() > 1000;
+            if (condition)
+                cancelledRequests.add(avRequest);
+            return condition;
+        });
+
+    }
 
     /** adds information to InfoLine */
     @Override
     protected String getInfoLine() {
-        return String.format("%s R=(%5d) MR=%6d", //
+        return String.format("%s R=(%5d) MR=%6d Denied=%6d", //
                 super.getInfoLine(), //
                 getAVRequests().size(), //
-                total_matchedRequests);
+                total_matchedRequests, //
+                cancelledRequests.size());
     }
 
     /** save simulation data into {@link SimulationObject} for later analysis and

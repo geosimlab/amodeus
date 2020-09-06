@@ -140,7 +140,7 @@ public class SharedRoboTaxiUtilsTest extends TestCase {
             // ---
         }
         assertEquals(s.roboTaxi1.getMenuOnBoardCustomers(), 1);
-        assertTrue(OnMenuRequests.canPickupNewCustomer(s.roboTaxi1));
+        assertTrue(OnMenuRequests.canPickupAdditionalCustomer(s.roboTaxi1));
 
         s.roboTaxi1.setDivertableLinkTime(new LinkTimePair(s.linkUp, 1.0));
         assertTrue(SharedRoboTaxiUtils.isNextCourseOfType(s.roboTaxi1, SharedMealType.REDIRECT));
@@ -160,7 +160,7 @@ public class SharedRoboTaxiUtilsTest extends TestCase {
 
         s.roboTaxi1.setDivertableLinkTime(new LinkTimePair(s.avRequest2.getFromLink(), 1.0));
         s.roboTaxi1.pickupNewCustomerOnBoard();
-        assertFalse(OnMenuRequests.canPickupNewCustomer(s.roboTaxi1));
+        assertFalse(OnMenuRequests.canPickupAdditionalCustomer(s.roboTaxi1));
 
         s.roboTaxi1.setDivertableLinkTime(new LinkTimePair(s.avRequest1.getToLink(), 1.0));
         s.roboTaxi1.dropOffCustomer();

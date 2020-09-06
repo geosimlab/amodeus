@@ -107,11 +107,17 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
 
     private void beforeStepTasks() {
         updateDivertableLocations();
-        if (private_now > 0) // at time 0, tasks are not started.
+        if (private_now > 0) { // at time 0, tasks are not started.
             updateCurrentLocations();
+        }
+        protectedBeforeStepTasks();
     }
 
-    /** {@link RoboTaxi} on a pickup ride which are sent to another location are
+    protected void protectedBeforeStepTasks() {
+		
+	}
+
+	/** {@link RoboTaxi} on a pickup ride which are sent to another location are
      * stopped, also taxis which have lost their pickup assignment */
     private void afterStepTasks() {
         stopAbortedPickupRoboTaxis();

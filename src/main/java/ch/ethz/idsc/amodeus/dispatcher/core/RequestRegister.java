@@ -1,6 +1,7 @@
 /* amodeus - Copyright (c) 2018, ETH Zurich, Institute for Dynamic Systems and Control */
 package ch.ethz.idsc.amodeus.dispatcher.core;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,7 +69,7 @@ import ch.ethz.matsim.av.passenger.AVRequest;
         throw new RuntimeException("no can do");
     }
 
-    /* package */ Map<AVRequest, RoboTaxi> getPickupRegister(Set<AVRequest> pendingRequests) {
+    /* package */ Map<AVRequest, RoboTaxi> getPickupRegister(Collection<AVRequest> pendingRequests) {
         Map<AVRequest, RoboTaxi> pickupRegister = new HashMap<>();
         for (Entry<RoboTaxi, Map<String, AVRequest>> requestRegisterEntry : register.entrySet())
             for (AVRequest avRequest : requestRegisterEntry.getValue().values())
@@ -81,7 +82,7 @@ import ch.ethz.matsim.av.passenger.AVRequest;
         return pickupRegister;
     }
 
-    /* package */ Set<AVRequest> getAssignedPendingRequests(Set<AVRequest> pendingRequests) {
+    /* package */ Set<AVRequest> getAssignedPendingRequests(Collection<AVRequest> pendingRequests) {
         return getAssignedAvRequests().stream().filter(pendingRequests::contains).collect(Collectors.toSet());
     }
 

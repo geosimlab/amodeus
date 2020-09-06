@@ -84,20 +84,20 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
 
     /** @return AVRequests which are currently not assigned to a vehicle */
     protected synchronized final List<AVRequest> getUnassignedAVRequests() {
-        return pendingRequests.stream() //
+        return getAVRequests().stream() //
                 .filter(r -> !requestRegister.contains(r)) //
                 .collect(Collectors.toList());
     }
 
     /** @return Map of AVRequests which have an assigned Robotaxi but are not Picked up yet. The value is the corresponding RoboTaxi */
     protected final Map<AVRequest, RoboTaxi> getCurrentPickupAssignements() {
-        return requestRegister.getPickupRegister(pendingRequests);
+        return requestRegister.getPickupRegister(getAVRequests());
     }
 
     /** @return {@link RoboTaxi} curently scheduled to pickup @param request or null if no {@link RoboTaxi}
      *         is scheduled to pickup the {@link AVRequest} */
     protected final RoboTaxi getCurrentPickupTaxi(AVRequest request) {
-        return requestRegister.getPickupRegister(pendingRequests).get(request);
+        return requestRegister.getPickupRegister(getAVRequests()).get(request);
     }
 
     /** @return divertablesRoboTaxis which currently not on a pickup drive */
@@ -119,7 +119,7 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
      * @param roboTaxi
      * @param avRequest */
     public final void addSharedRoboTaxiPickup(RoboTaxi roboTaxi, AVRequest avRequest) {
-        GlobalAssert.that(pendingRequests.contains(avRequest));
+        GlobalAssert.that(getAVRequests().contains(avRequest));
 
         // If the request was already assigned remove it from the current vehicle in the request register and update its menu;
         if (requestRegister.contains(avRequest))
@@ -156,6 +156,18 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
         } else
             throw new RuntimeException("This place should not be reached");
     }
+    
+    @Override
+    protected void protectedBeforeStepTasks(){
+      pendingRequests.removeIf(avRequest -> {
+            boolean condition = Objects.isNull(avRequest.getPickupTask()) && //
+            		getTimeNow() - avRequest.getSubmissionTime() > 1000 && //
+            		!requestRegister.contains(avRequest);
+            if (condition)
+                cancelledRequests.add(avRequest);
+            return condition;
+        });
+    }
 
     /** this function will re-route the taxi if it is not in stay task (for
      * congestion relieving purpose) */
@@ -190,25 +202,27 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
      * fromLink of an {@link AVRequest} */
     @Override
     final void executePickups() {
-        Map<AVRequest, RoboTaxi> pickupRegisterCopy = new HashMap<>(requestRegister.getPickupRegister(pendingRequests));
-        List<RoboTaxi> pickupUniqueRoboTaxis = pickupRegisterCopy.values().stream() //
+        Map<AVRequest, RoboTaxi> pickupRegisterCopy = new HashMap<>(requestRegister.getPickupRegister(getAVRequests()));
+        List<RoboTaxi> uniquePickupTaxis = pickupRegisterCopy.values().stream() //
                 .filter(srt -> SharedRoboTaxiUtils.isNextCourseOfType(srt, SharedMealType.PICKUP)) //
                 .distinct().collect(Collectors.toList());
-        for (RoboTaxi roboTaxi : pickupUniqueRoboTaxis) {
-            Optional<AVRequest> avRequest = //
-                    PickupIfOnLastLink.apply(roboTaxi, getTimeNow(), pickupDurationPerStop, futurePathFactory);
-            if (avRequest.isPresent()) {
-                GlobalAssert.that(pendingRequests.contains(avRequest.get()));
-                // Update the registers
-                boolean checkPendingRemoved = pendingRequests.remove(avRequest.get());
-                GlobalAssert.that(checkPendingRemoved);
-                reqStatuses.put(avRequest.get(), RequestStatus.DRIVING);
-                periodPickedUpRequests.add(avRequest.get());
-                ++total_matchedRequests;
+        Set<AVRequest> pickingUp = new HashSet<>();
+        for (RoboTaxi roboTaxi : uniquePickupTaxis) {
+            List<AVRequest> avRequest = PickupIfOnLastLink.apply(roboTaxi, getTimeNow(), //
+                    pickupDurationPerStop, futurePathFactory);
+            pickingUp.addAll(avRequest);
+        }
 
-                GlobalAssert.that(!pendingRequests.contains(avRequest.get()));
-                GlobalAssert.that(requestRegister.contains(roboTaxi, avRequest.get()));
-            }
+        for (AVRequest avRequest : pickingUp) {
+            GlobalAssert.that(pendingRequests.contains(avRequest));
+            // Update the registers
+            boolean checkPendingRemoved = pendingRequests.remove(avRequest);
+            GlobalAssert.that(checkPendingRemoved);
+            reqStatuses.put(avRequest, RequestStatus.DRIVING);
+            periodPickedUpRequests.add(avRequest);
+            ++total_matchedRequests;
+
+            GlobalAssert.that(!pendingRequests.contains(avRequest));
         }
     }
 
@@ -338,10 +352,10 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
             }
 
         /** there cannot be more pickup than open requests */
-        GlobalAssert.that(requestRegister.getAssignedPendingRequests(pendingRequests).size() <= pendingRequests.size());
+        GlobalAssert.that(requestRegister.getAssignedPendingRequests(getAVRequests()).size() <= getAVRequests().size());
 
         /** there cannot be more pickup vehicles than open requests */
-        GlobalAssert.that(getRoboTaxiSubset(RoboTaxiStatus.DRIVETOCUSTOMER).size() <= pendingRequests.size());
+        GlobalAssert.that(getRoboTaxiSubset(RoboTaxiStatus.DRIVETOCUSTOMER).size() <= getAVRequests().size());
 
         /** all {@link RoboTaxi} in the request Register must have a starter course */
         GlobalAssert.that(requestRegister.getRegister().keySet().stream().allMatch(SharedCourseAccess::hasStarter));
@@ -387,6 +401,7 @@ public abstract class SharedUniversalDispatcher extends BasicUniversalDispatcher
         simulationObjectCompiler.insertRequests(periodPickedUpRequests, RequestStatus.PICKUP);
         simulationObjectCompiler.insertRequests(periodFulfilledRequests.keySet(), RequestStatus.DROPOFF);
         simulationObjectCompiler.insertRequests(periodSubmittdRequests, RequestStatus.REQUESTED);
+        simulationObjectCompiler.insertRequests(cancelledRequests,RequestStatus.CANCELLED);
 
         /** insert information of association of {@link RoboTaxi}s and {@link AVRequest}s */
         Map<AVRequest, RoboTaxi> flatMap = new HashMap<>();
