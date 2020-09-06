@@ -16,8 +16,16 @@ public class RequestKeyInfo {
     public RequestKeyInfo(AVRequest avRequest, double maxWaitTime, double maxDelay, TravelTimeComputation ttc) {
         modifiableSubmissionTime = avRequest.getSubmissionTime();
         deadlinePickUp = avRequest.getSubmissionTime() + maxWaitTime;
-        deadlineDropOff = avRequest.getSubmissionTime() + ttc.of(avRequest.getFromLink(), avRequest.getToLink(), //
-                avRequest.getSubmissionTime(), true) + maxDelay;
+        double maxTripTime = maxDelay + ttc.of(avRequest.getFromLink(), avRequest.getToLink(), avRequest.getSubmissionTime(), true);
+        deadlineDropOff = avRequest.getSubmissionTime() + maxTripTime;
+        allowanceGiven = false;
+    }
+    
+    public RequestKeyInfo(AVRequest avRequest, double maxWaitTime, double maxAlpha, int maxBeta, TravelTimeComputation ttc) {
+        modifiableSubmissionTime = avRequest.getSubmissionTime();
+        deadlinePickUp = avRequest.getSubmissionTime() + maxWaitTime;
+        double maxTripTime = maxAlpha * ttc.of(avRequest.getFromLink(), avRequest.getToLink(), avRequest.getSubmissionTime(), true) + maxBeta;
+        deadlineDropOff = avRequest.getSubmissionTime() + maxTripTime;
         allowanceGiven = false;
     }
 

@@ -41,17 +41,26 @@ import ch.ethz.matsim.av.router.AVRouter;
  * at each time dispatcher is called, for each vehicle, all possible trips (adding additional open request to the vehicle) is explored
  * and then ILP is called to choose the optimal assignment. */
 public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
-    /** parameters */
-
-    private static final double MAX_DELAY = 600.0;
-    private static final double maxWaitTime = 300.0;
+    
+	private static final String MAX_BETA_TRAVEL_TIME_TAG = "MaxBetaTravelTime";
+	private static final String MAX_ALPHA_TRAVEL_TIME_TAG = "MaxAlphaTravelTime";
+	private static final String MAX_WAIT_TIME_TAG = "MaxWaitTime";
+	/** parameters */  
+	private static final double MAX_DELAY = 600.0;
     private static final double costOfIgnoredReuqestNormal = 7200;
     private static final double costOfIgnoredReuqestHigh = 72000;
     private static final int DEFAULTNUMBERSEATS = 4;
+    // used as default values for the time calculation
+    // The formula is: total_time < alpha * direct + beta
+    private static final double DEFAULT_ALPHA = 1.3;
+    private static final int DEFAULT_BETA = 1800; // [s]
 
     private final int dispatchPeriod;
     private final int rebalancePeriod;
     private final int capacityOfTaxi;
+    private final double alphaCoeff;
+    private final int betaCoeff;
+    private final double maxWaitTime;
 
     private final List<Link> links;
     private final Random randGen = new Random(1234);
@@ -94,6 +103,10 @@ public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
         capacityOfTaxi = (int) Long.parseLong(operatorConfig.getGeneratorConfig().getParams().getOrDefault("numberOfSeats", String.valueOf(DEFAULTNUMBERSEATS)));
         pickupDurationPerStop = safeConfig.getInteger("pickupDurationPerStop", 15);
         dropoffDurationPerStop = safeConfig.getInteger("dropoffDurationPerStop", 10);
+        
+        alphaCoeff = safeConfig.getDouble(MAX_ALPHA_TRAVEL_TIME_TAG, DEFAULT_ALPHA);
+        betaCoeff = safeConfig.getInteger(MAX_BETA_TRAVEL_TIME_TAG, DEFAULT_BETA);
+        maxWaitTime = safeConfig.getDouble(MAX_WAIT_TIME_TAG, betaCoeff);
 
         links = new ArrayList<>(network.getLinks().values());
         Collections.shuffle(links, randGen);
@@ -122,7 +135,7 @@ public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
             for (AVRequest avRequest : getAVRequests()) {
                 if (requestPool.size() < sizeLimit && !overduedRequests.contains(avRequest))
                     requestPool.add(avRequest);
-                requestKeyInfoMap.computeIfAbsent(avRequest, avr -> new RequestKeyInfo(avr, maxWaitTime, MAX_DELAY, ttc));
+                requestKeyInfoMap.computeIfAbsent(avRequest, avr -> new RequestKeyInfo(avr, maxWaitTime, alphaCoeff, betaCoeff, ttc));
             }
             // modify the request key info (submission time and pickup deadline)
             requestKeyInfoMap.forEach(((avRequest, requestKeyInfo) -> {
