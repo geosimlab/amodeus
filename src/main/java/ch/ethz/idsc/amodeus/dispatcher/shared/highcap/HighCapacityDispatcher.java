@@ -142,7 +142,7 @@ public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
                     now, ttc, requestKeyInfoMap);
 
             // RTV diagram construction (generate a list of edges between trip and vehicle)
-            List<TripWithVehicle> grossListOfRTVEdges = rtvGG.generateRTV(getRoboTaxis(), newAddedValidRequests, //
+            List<TripWithVehicle> grossListOfRTVEdges = rtvGG.generateRTV(getDivertableRoboTaxis(), newAddedValidRequests, //
                     removedRequests, now, requestKeyInfoMap, //
                     rvEdges, ttc, lastAssignment, trafficTimeAllowance);
 
@@ -162,6 +162,7 @@ public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
             }
             // end
 
+            
             // Taxi Assignment
             for (TripWithVehicle tripWithVehicle : sharedTaxiAssignmentPlan) {
                 // get roboTaxi

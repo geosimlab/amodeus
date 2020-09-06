@@ -117,7 +117,7 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
 		
 	}
 
-	/** {@link RoboTaxi} on a pickup ride which are sent to another location are
+    /** {@link RoboTaxi} on a pickup ride which are sent to another location are
      * stopped, also taxis which have lost their pickup assignment */
     private void afterStepTasks() {
         stopAbortedPickupRoboTaxis();

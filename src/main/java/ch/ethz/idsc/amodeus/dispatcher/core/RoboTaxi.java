@@ -318,7 +318,7 @@ public final class RoboTaxi {
      * is in progress if the divertable link of the robotaxi equals the link of the
      * Dropoff Course.
      * 
-     * @param list {@link List<SharedCourse>} */
+     * @param List<SharedCourse> */
     public void updateMenu(List<SharedCourse> list) {
         updateMenu(SharedMenu.of(list));
     }
@@ -343,8 +343,9 @@ public final class RoboTaxi {
         // addAVrequestandRemoveFirstRebalancing(AVrequest)
         if (status.equals(RoboTaxiStatus.REBALANCEDRIVE)) {
             GlobalAssert.that(SharedCourseAccess.getStarter(this).get().getMealType().equals(SharedMealType.REDIRECT));
-            if (getUnmodifiableViewOfCourses().size() == 1)
+            if (getUnmodifiableViewOfCourses().size() == 1) {
                 finishRedirection();
+            }
         }
         SharedCourse pickupCourse = SharedCourse.pickupCourse(avRequest);
         SharedCourse dropoffCourse = SharedCourse.dropoffCourse(avRequest);
@@ -356,14 +357,10 @@ public final class RoboTaxi {
     /* package */ void addRedirectCourseToMenu(SharedCourse redirectCourse) {
         GlobalAssert.that(redirectCourse.getMealType().equals(SharedMealType.REDIRECT));
         // this if statment is added by Luc and that fix the problem
-        if (status.equals(RoboTaxiStatus.REBALANCEDRIVE))
+        if (status.equals(RoboTaxiStatus.REBALANCEDRIVE)) {
             finishRedirection();
+        }
         setMenu(SharedCourseAdd.asDessert(menu, redirectCourse));
-    }
-    
-    /* package */ void pickupOf(List<AVRequest> avrs){
-        for(AVRequest avr : avrs)
-            setMenu(SharedCourseRemove.several(menu, SharedCourse.pickupCourse(avr)));
     }
 
     /* package */ void addRedirectCourseToMenuAtBegining(SharedCourse redirectCourse) {
@@ -376,6 +373,12 @@ public final class RoboTaxi {
         GlobalAssert.that(SharedRoboTaxiUtils.getStarterLink(this).equals(getDivertableLocation()));
         setMenu(SharedCourseRemove.starter(menu));
     }
+    
+    /* package */ void pickupOf(List<AVRequest> avrs){
+        for(AVRequest avr : avrs)
+            setMenu(SharedCourseRemove.several(menu, SharedCourse.pickupCourse(avr)));
+    }
+    
 
     /* package */ void dropOffCustomer() {
         checkAbilityToDropOff();

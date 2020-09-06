@@ -85,18 +85,15 @@ public class TravelTimeAnalysis implements AnalysisElement, TotalValueAppender {
 
         /** finish filling of travel Histories */
         for (TravelHistory travelHistory : travelHistories.values()) {
-            if (!(travelHistory.getAssignmentTime().equals(travelHistory.getDropOffTime()) && //
-            		travelHistory.getDropOffTime().equals(travelHistory.getWaitEndTime()) && //
-            		travelHistory.getDropOffTime().equals(tLast))) {
-	            
-        			travelTimes.appendRow(Tensors.of( //
-            		RealScalar.of(travelHistory.reqIndx), travelHistory.getWaitTime(), //
-            		travelHistory.getDriveTime(), travelHistory.getTotalTravelTime()));
-            		requstStmps.appendRow(Tensors.of( //
-            		RealScalar.of(travelHistory.reqIndx), travelHistory.submsnTime, //
-            		travelHistory.getAssignmentTime(), travelHistory.getWaitEndTime(), //
-            		travelHistory.getDropOffTime()));
-            	}
+            if (!(travelHistory.getAssignmentTime().equals(travelHistory.getDropOffTime()) && travelHistory.getDropOffTime().equals(travelHistory.getWaitEndTime()) && travelHistory.getDropOffTime().equals(tLast))) {
+                travelTimes.appendRow(Tensors.of( //
+                        RealScalar.of(travelHistory.reqIndx), travelHistory.getWaitTime(), //
+                        travelHistory.getDriveTime(), travelHistory.getTotalTravelTime()));
+                requstStmps.appendRow(Tensors.of( //
+                        RealScalar.of(travelHistory.reqIndx), travelHistory.submsnTime, //
+                        travelHistory.getAssignmentTime(), travelHistory.getWaitEndTime(), //
+                        travelHistory.getDropOffTime()));
+            }
         }
 
         /** calculate maximum values */

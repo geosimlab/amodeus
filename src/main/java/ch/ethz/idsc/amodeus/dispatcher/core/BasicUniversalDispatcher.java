@@ -69,10 +69,6 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
     /** @return {@Collection} of all {@AVRequests} which are currently open.
      *         Requests are removed from list in setAcceptRequest function. */
     protected synchronized final Collection<AVRequest> getAVRequests() {
-    	if (pendingRequests.removeIf(avRequest -> Objects.isNull(avRequest.getPickupTask()) && //
-    			getTimeNow() - avRequest.getSubmissionTime() > 600)) {
-    		System.out.println("removed request");
-    	}
         return Collections.unmodifiableCollection(pendingRequests);
     }
 

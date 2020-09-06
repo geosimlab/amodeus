@@ -25,6 +25,9 @@ import ch.ethz.matsim.av.schedule.AVStayTask;
         this.roboTaxi = roboTaxi;
         this.sameOriginRequests = sameOriginRequests;
         this.getTimeNow = getTimeNow;
+
+        // all requests must have same from link
+        GlobalAssert.that(sameOriginRequests.stream().map(AVRequest::getFromLink).distinct().count() == 1);
     }
 
     @Override
@@ -45,18 +48,15 @@ import ch.ethz.matsim.av.schedule.AVStayTask;
                     0.0, sameOriginRequests);
             schedule.addTask(pickupTask);
 
-            // schedule.addTask(new AVDriveTask( //
-            // vrpPathWithTravelData, Arrays.asList(currentRequest)));
-            // ScheduleUtils.makeWhole(robotaxi, endTaskTime, scheduleEndTime, vrpPathWithTravelData.getToLink());
-
             GlobalAssert.that(futurePathContainer.getStartTime() < scheduleEndTime);
-            ScheduleUtils.makeWhole(roboTaxi, futurePathContainer.getStartTime(), scheduleEndTime, // 
-            		sameOriginRequests.get(0).getFromLink());
+            ScheduleUtils.makeWhole(roboTaxi, futurePathContainer.getStartTime(), scheduleEndTime, //
+                    sameOriginRequests.get(0).getFromLink());
 
             // jan: following computation is mandatory for the internal scoring
             // // function
             final double distance = VrpPathUtils.getDistance(vrpPathWithTravelData);
             sameOriginRequests.forEach(r -> r.getRoute().setDistance(distance));// .getRoute().setDistance(distance);
+
         } else
             reportExecutionBypass(endTaskTime - scheduleEndTime);
     }
