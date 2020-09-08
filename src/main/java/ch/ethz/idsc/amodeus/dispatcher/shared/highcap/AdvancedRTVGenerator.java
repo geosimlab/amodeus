@@ -27,6 +27,11 @@ import ch.ethz.matsim.av.passenger.AVRequest;
         this.pickupDurationPerStop = pickupDurationPerStop;
         this.dropoffDurationPerStop = dropoffDurationPerStop;
     }
+    
+    public int getNumberOfRequestsInCache() {
+	return feasibleOpenRequestFromLastStepMap.values().stream()//
+		.mapToInt(Set<AVRequest>::size).sum();
+    }
 
     public List<TripWithVehicle> generateRTV(Collection<RoboTaxi> roboTaxis, Set<AVRequest> newAddedRequests, Set<AVRequest> removedRequests, //
                                              double now, Map<AVRequest, RequestKeyInfo> requestKeyInfoMap, Set<Set<AVRequest>> rvEdges, //
@@ -91,7 +96,7 @@ import ch.ethz.matsim.av.passenger.AVRequest;
 
             // size 2 trips:
             List<Set<AVRequest>> listOfSize2Trips = new ArrayList<>();
-            for (int i = 0; i < listOfsize1Trip.size(); i++)
+            for (int i = 0; i < listOfsize1Trip.size(); i++) {
                 for (int j = i + 1; j < listOfsize1Trip.size(); j++) {
                     Set<AVRequest> thisTrip = new HashSet<>();
                     thisTrip.add(listOfsize1Trip.get(i).iterator().next());
@@ -108,56 +113,57 @@ import ch.ethz.matsim.av.passenger.AVRequest;
                         }
                     }
                 }
+            }
 
-                // size 3 to maximum trip length
-                List<Set<AVRequest>> listOfTripsFromLastLoop = listOfSize2Trips;
-                List<Set<AVRequest>> listOfTripsFromThisLoop = new ArrayList<>();
-                int k = 3;
-                while (k <= capacityOfTaxi && !listOfTripsFromLastLoop.isEmpty()) {
-                    // generate all combination of trips with size k
-                    listOfTripsFromThisLoop.clear();
-                    for (int i = 0; i < listOfTripsFromLastLoop.size(); i++) {
-                        for (int j = i + 1; j < listOfTripsFromLastLoop.size(); j++) {
-                            Set<AVRequest> thisTrip = new HashSet<>();
-                            thisTrip.addAll(listOfTripsFromLastLoop.get(i));
-                            thisTrip.addAll(listOfTripsFromLastLoop.get(j));
+            // size 3 to maximum trip length
+            List<Set<AVRequest>> listOfTripsFromLastLoop = listOfSize2Trips;
+            List<Set<AVRequest>> listOfTripsFromThisLoop = new ArrayList<>();
+            int k = 3;
+            while (k <= capacityOfTaxi && !listOfTripsFromLastLoop.isEmpty()) {
+                // generate all combination of trips with size k
+                listOfTripsFromThisLoop.clear();
+                for (int i = 0; i < listOfTripsFromLastLoop.size(); i++) {
+                    for (int j = i + 1; j < listOfTripsFromLastLoop.size(); j++) {
+                        Set<AVRequest> thisTrip = new HashSet<>();
+                        thisTrip.addAll(listOfTripsFromLastLoop.get(i));
+                        thisTrip.addAll(listOfTripsFromLastLoop.get(j));
 
-                            // check if this trip is size k
-                            if (thisTrip.size() == k) {
-                                // check if all thisTrip's sub-trip is in the set of trips of size k-1
-                                if (EverySubtripIsValid.of(listOfTripsFromLastLoop, thisTrip)) {
-                                    // if yes, then generate route and validate the route
-                                    List<StopInRoute> route = RouteGenerator.of(roboTaxi, thisTrip, now, //
-                                            requestKeyInfoMap, capacityOfTaxi, //
-                                            ttc, pickupDurationPerStop, dropoffDurationPerStop);
-                                    double totalDelayForThisTrip = //
-                                            TotalDelayCalculator.of(route, requestKeyInfoMap, ttc);
-                                    if (isTripValid(totalDelayForThisTrip)) {
-                                        TripWithVehicle thisTripWithVehicle = new TripWithVehicle(roboTaxi, totalDelayForThisTrip, thisTrip, route);
-                                        grossListOfRTVEdges.add(thisTripWithVehicle);
-                                        listOfTripsFromThisLoop.add(thisTrip);
-                                    }
+                        // check if this trip is size k
+                        if (thisTrip.size() == k) {
+                            // check if all thisTrip's sub-trip is in the set of trips of size k-1
+                            if (EverySubtripIsValid.of(listOfTripsFromLastLoop, thisTrip)) {
+                                // if yes, then generate route and validate the route
+                                List<StopInRoute> route = RouteGenerator.of(roboTaxi, thisTrip, now, //
+                                        requestKeyInfoMap, capacityOfTaxi, //
+                                        ttc, pickupDurationPerStop, dropoffDurationPerStop);
+                                double totalDelayForThisTrip = //
+                                        TotalDelayCalculator.of(route, requestKeyInfoMap, ttc);
+                                if (isTripValid(totalDelayForThisTrip)) {
+                                    TripWithVehicle thisTripWithVehicle = new TripWithVehicle(roboTaxi, totalDelayForThisTrip, thisTrip, route);
+                                    grossListOfRTVEdges.add(thisTripWithVehicle);
+                                    listOfTripsFromThisLoop.add(thisTrip);
                                 }
                             }
                         }
                     }
-                    k++;
-                    listOfTripsFromLastLoop = listOfTripsFromThisLoop;
                 }
+                k++;
+                listOfTripsFromLastLoop = listOfTripsFromThisLoop;
+            }
 
-                // remove some data from cache to release some memory
-                if (!roboTaxi.isInStayTask())
-                    ttc.removeEntry(taxiCurrentLink); // if the taxi is moving (not staying), then this entry will not be useful anymore
+            // remove some data from cache to release some memory
+            if (!roboTaxi.isInStayTask())
+                ttc.removeEntry(taxiCurrentLink); // if the taxi is moving (not staying), then this entry will not be useful anymore
 
-                // remove traffic allowance we added before, so that next taxi will get the original value
-                for (TripWithVehicle tripWithVehicle : lastAssignment)
-                    if (tripWithVehicle.getRoboTaxi() == roboTaxi) {
-                        for (AVRequest avRequest : tripWithVehicle.getTrip())
-                            if (requestKeyInfoMap.keySet().contains(avRequest))
-                                requestKeyInfoMap.get(avRequest).removeTrafficAllowance(trafficAllowance);
-                        break;
-                    }
-//            }
+            // remove traffic allowance we added before, so that next taxi will get the original value
+            for (TripWithVehicle tripWithVehicle : lastAssignment) {
+                if (tripWithVehicle.getRoboTaxi() == roboTaxi) {
+                    for (AVRequest avRequest : tripWithVehicle.getTrip())
+                        if (requestKeyInfoMap.keySet().contains(avRequest))
+                            requestKeyInfoMap.get(avRequest).removeTrafficAllowance(trafficAllowance);
+                    break;
+                }
+            }
         }
         return grossListOfRTVEdges;
 

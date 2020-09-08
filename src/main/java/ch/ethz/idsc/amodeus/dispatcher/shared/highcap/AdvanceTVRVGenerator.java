@@ -22,6 +22,8 @@ import ch.ethz.matsim.av.passenger.AVRequest;
         this.pickupDurationPerStop = pickupDurationPerStop;
         this.dropoffDurationPerStop = dropoffDurationPerStop;
     }
+    
+    public int getNumberOfEdges() { return rvEdges.size(); }
 
     public Set<Set<AVRequest>> generateRVGraph(Set<AVRequest> newAddedRequests, Set<AVRequest> removedRequests, //
             Set<AVRequest> remainedRequests, double now, TravelTimeComputation ttc, Map<AVRequest, RequestKeyInfo> requestKeyInfoMap) {

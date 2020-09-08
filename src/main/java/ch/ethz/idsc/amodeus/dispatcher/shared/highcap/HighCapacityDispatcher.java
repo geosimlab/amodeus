@@ -42,11 +42,14 @@ import ch.ethz.matsim.av.router.AVRouter;
  * and then ILP is called to choose the optimal assignment. */
 public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
     
-	private static final String MAX_BETA_TRAVEL_TIME_TAG = "MaxBetaTravelTime";
-	private static final String MAX_ALPHA_TRAVEL_TIME_TAG = "MaxAlphaTravelTime";
-	private static final String MAX_WAIT_TIME_TAG = "MaxWaitTime";
-	/** parameters */  
-	private static final double MAX_DELAY = 600.0;
+    /* config tags names */
+    private static final String MAX_BETA_TRAVEL_TIME_TAG = "MaxBetaTravelTime";
+    private static final String MAX_ALPHA_TRAVEL_TIME_TAG = "MaxAlphaTravelTime";
+    private static final String MAX_WAIT_TIME_TAG = "MaxWaitTime";
+    
+    /** parameters */
+    @SuppressWarnings("unused")
+    private static final double MAX_DELAY = 600.0;
     private static final double costOfIgnoredReuqestNormal = 7200;
     private static final double costOfIgnoredReuqestHigh = 72000;
     private static final int DEFAULTNUMBERSEATS = 4;
@@ -117,6 +120,14 @@ public class HighCapacityDispatcher extends SharedRebalancingDispatcher {
         rtvGG = new AdvancedRTVGenerator(capacityOfTaxi, pickupDurationPerStop, dropoffDurationPerStop);
         rvGenerator = new AdvanceTVRVGenerator(pickupDurationPerStop, dropoffDurationPerStop);
         checkingUpdateMenuOrNot = new CheckingUpdateMenuOrNot();
+    }
+    
+    @Override
+    protected String getInfoLine() {
+	return String.format("%s CacheRV/RTV=(%5d / %5d)", //
+                super.getInfoLine(), //
+                rvGenerator.getNumberOfEdges(), //
+                rtvGG.getNumberOfRequestsInCache());
     }
 
     @Override
