@@ -32,11 +32,14 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
     private Double private_now = null;
     public InfoLine infoLine = null;
     private final StorageUtils storageUtils;
+    
+    private final boolean skipConsistencyCheck;
 
     RoboTaxiMaintainer(EventsManager eventsManager, Config config, OperatorConfig operatorConfig) {
         SafeConfig safeConfig = SafeConfig.wrap(operatorConfig.getDispatcherConfig());
         this.eventsManager = eventsManager;
         this.infoLine = new InfoLine(safeConfig.getInteger("infoLinePeriod", 10));
+        this.skipConsistencyCheck = safeConfig.getString("SkipConsistencyCheck", "false") == "true";
         String outputdirectory = config.controler().getOutputDirectory();
         this.storageUtils = new StorageUtils(new File(outputdirectory));
     }
@@ -125,6 +128,9 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
     }
 
     private void consistencyCheck() {
+	if (skipConsistencyCheck) {
+	    return;
+	}
         consistencySubCheck();
     }
 
